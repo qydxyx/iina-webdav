@@ -6,7 +6,7 @@ import { collectionUrl, mediaUrl, normalizePath } from "./paths";
 import { parsePropfindXml } from "./parse-propfind";
 import type { ConnectionConfig, DavItem } from "./types";
 
-const { console, file, utils } = iina;
+const { file, utils } = iina;
 
 const PROPFIND_BODY = `<?xml version="1.0" encoding="utf-8"?>
 <d:propfind xmlns:d="DAV:">

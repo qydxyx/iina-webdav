@@ -270,13 +270,22 @@ function attachWindowHandlers(): void {
   standaloneWindow.onMessage("add-items", async (data: { paths: string[] }) => {
     try {
       if (!active) throw new Error(t("notConnected"));
-      const items = (data.paths || []).map((path) => ({
+      const paths = data.paths || [];
+      if (paths.length === 0) {
+        send("status", { text: t("noPlayableMedia"), error: true, loading: false });
+        return;
+      }
+      const items = paths.map((path) => ({
         url: mediaUrl(active as ConnectionConfig, path),
         title: basename(path),
       }));
       debug("add-items", items.length);
       await dispatchPlay(items, "append");
-      send("status", { text: t("addedItems", { count: items.length }), error: false, loading: false });
+      send("status", {
+        text: t("addedItems", { count: items.length, title: items[0] ? items[0].title : "" }),
+        error: false,
+        loading: false,
+      });
     } catch (error) {
       logError("add-items failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -294,9 +303,17 @@ function attachWindowHandlers(): void {
       });
       debug("add-folder", target, data.recursive ? "recursive" : "flat");
       const { urls, truncated } = await collectMedia(active, target, activePassword, Boolean(data.recursive));
-      await dispatchPlay(toEntries(urls), "append");
+      if (urls.length === 0) {
+        send("status", { text: t("noPlayableMedia"), error: true, loading: false });
+        return;
+      }
+      const entries = toEntries(urls);
+      await dispatchPlay(entries, "append");
       send("status", {
-        text: t(truncated ? "addedItemsTruncated" : "addedItems", { count: urls.length }),
+        text: t(truncated ? "addedItemsTruncated" : "addedItems", {
+          count: entries.length,
+          title: entries[0] ? entries[0].title : "",
+        }),
         error: false,
         loading: false,
       });
@@ -307,10 +324,15 @@ function attachWindowHandlers(): void {
   });
 }
 
+let handlersAttached = false;
+
 function openWindow(): void {
   debug("open window");
   standaloneWindow.loadFile("ui/window.html");
-  attachWindowHandlers();
+  if (!handlersAttached) {
+    attachWindowHandlers();
+    handlersAttached = true;
+  }
   standaloneWindow.setProperty({ title: "WebDAV", resizable: true });
   standaloneWindow.setFrame(840, 620);
   standaloneWindow.open();

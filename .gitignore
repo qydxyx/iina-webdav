@@ -2,3 +2,6 @@ node_modules/
 .parcel-cache/
 *.iinaplgz
 .DS_Store
+.agents/
+.claude/
+skills-lock.json

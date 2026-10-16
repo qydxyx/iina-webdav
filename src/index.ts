@@ -50,13 +50,36 @@ function allowPlaylistStreams(): void {
   }
 }
 
+const FAST_START_OPTIONS: ReadonlyArray<[string, string]> = [
+  ["ytdl", "no"],
+  ["cache-pause-initial", "no"],
+  ["stream-lavf-o", "seekable=1,multiple_requests=1,reconnect=1,reconnect_streamed=1,reconnect_delay_max=2"],
+  ["demuxer-lavf-o", "fflags=+ignidx"],
+  ["demuxer-lavf-buffersize", "262144"],
+  ["demuxer-lavf-probesize", "1048576"],
+  ["demuxer-lavf-analyzeduration", "1"],
+  ["demuxer-mkv-subtitle-preroll", "no"],
+];
+
+function preferFastStart(): void {
+  // A seekable HTTP stream makes lavf walk every moof/mdat in a fragmented
+  // MP4 before the first frame. That walk is the whole file, so a 100MB
+  // open takes as long as the download and a 2GB open takes minutes.
+  // fflags=+ignidx returns after the first fragment. seekable=1 still lets
+  // a single mdat-then-moov file jump to the index with one Range request.
+  // Do not set force-seekable; it forces that full walk.
+  for (const [key, value] of FAST_START_OPTIONS) {
+    try {
+      mpv.set(key, value);
+    } catch (error) {
+      warn(`set ${key} failed: ${error}`);
+    }
+  }
+}
+
 function applyAuthHeaders(cfg: ConnectionConfig, secret: string): void {
   allowPlaylistStreams();
-  try {
-    mpv.set("ytdl", "no");
-  } catch (error) {
-    warn(`set ytdl=no failed: ${error}`);
-  }
+  preferFastStart();
   if (cfg.insecure) {
     try {
       mpv.set("tls-verify", "no");
@@ -85,13 +108,18 @@ function injectAuthForUrl(url: string): void {
   const publicUrl = stripPlaybackWrapper(url);
   const title = titleFromUrl(publicUrl);
   debug("on_load match", publicUrl, describeConn(cfg));
+  for (const [key, value] of FAST_START_OPTIONS) {
+    try {
+      mpv.set(key, value);
+      mpv.set(`file-local-options/${key}`, value);
+    } catch (error) {
+      warn(`on_load option ${key} failed: ${error}`);
+    }
+  }
   try {
-    mpv.set("ytdl", "no");
-    mpv.set("file-local-options/ytdl", "no");
-    mpv.set("file-local-options/force-seekable", "yes");
     mpv.set("file-local-options/force-media-title", title);
   } catch (error) {
-    warn(`on_load options failed: ${error}`);
+    warn(`on_load force-media-title failed: ${error}`);
   }
   if (cfg.insecure) {
     mpv.set("file-local-options/tls-verify", "no");
@@ -136,74 +164,39 @@ function takePlayRequest(data: PlayRequest): PlaylistEntry[] {
   return entriesFrom(data);
 }
 
-function mpvPlaylistCount(): number {
-  try {
-    const n = mpv.getNumber("playlist-count");
-    return typeof n === "number" && isFinite(n) ? n : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function playlistAdd(urls: string[]): boolean {
-  if (urls.length === 0) return true;
-  const api = playlist as unknown as { add: (url: string | string[], at?: number) => unknown };
-  try {
-    const result = api.add(urls.length === 1 ? urls[0] : urls, -1);
-    debug("playlist.add", urls.length, "result", result);
-    return result !== false;
-  } catch (error) {
-    warn(`playlist.add batch failed: ${error}`);
-    let ok = true;
-    for (const url of urls) {
-      try {
-        if (api.add(url, -1) === false) ok = false;
-      } catch (itemError) {
-        logError(`playlist.add failed: ${itemError}`);
-        ok = false;
-      }
-    }
-    return ok;
-  }
-}
-
 function appendEntries(items: PlaylistEntry[]): void {
-  const urls = items.map((item) => item.url);
-  const iinaBefore = playlist.count();
-  const mpvBefore = mpvPlaylistCount();
   const m3u = writeM3U(items);
-  debug("playlist m3u", "append", items.length, items[0].title, "iina", iinaBefore, "mpv", mpvBefore);
+  debug("playlist m3u append", items.length, items[0] ? items[0].title : "");
   try {
     mpv.command("loadlist", [m3u, "append"]);
   } catch (error) {
     warn(`loadlist failed: ${error}`);
-  }
-  const mpvAfter = mpvPlaylistCount();
-  debug("mpv playlist after loadlist", mpvAfter);
-
-  // loadlist updates mpv (and M3U titles) but IINA's sidebar keeps a snapshot
-  // until playlist.add runs getPlaylist().
-  const synced = playlistAdd([urls[0]]);
-  const iinaAfter = playlist.count();
-  debug("playlist after sync", iinaAfter, "synced", synced);
-
-  if (mpvAfter >= mpvBefore + items.length && iinaAfter >= mpvBefore + items.length + 1) {
-    try {
-      playlist.remove(iinaAfter - 1);
-    } catch (error) {
-      warn(`remove duplicate failed: ${error}`);
+    for (const item of items) {
+      try {
+        playlist.add(item.url);
+      } catch (addError) {
+        logError(`playlist.add failed: ${addError}`);
+      }
     }
-  } else if (iinaAfter <= iinaBefore) {
-    playlistAdd(urls);
-  } else if (iinaAfter < iinaBefore + items.length) {
-    playlistAdd(urls.slice(iinaAfter - iinaBefore));
   }
+}
+
+function nothingPlaying(): boolean {
+  try {
+    if (core.status.idle) return true;
+  } catch (error) {
+    warn(`idle check failed: ${error}`);
+  }
+  return playlist.count() === 0;
 }
 
 function loadEntries(items: PlaylistEntry[], mode: "play" | "append"): void {
   if (items.length === 0) return;
-  debug("playlist m3u", mode, items.length, items[0].title);
-  if (mode === "play" || playlist.count() === 0) {
+  const start = mode === "play" || nothingPlaying();
+  debug("playlist m3u", mode, start ? "open" : "append", items.length, items[0].title);
+  // Idle players reject playlist.add. core.open replaces the list and starts item 0,
+  // which also closes IINA's welcome window.
+  if (start) {
     core.open(writeM3U(items));
     return;
   }
@@ -248,6 +241,11 @@ function hello(): void {
 
 debug("main entry loaded", describeConn(connection));
 allowPlaylistStreams();
+if (isUsableConnection(connection)) {
+  applyAuthHeaders(connection, currentPassword(connection));
+} else {
+  preferFastStart();
+}
 hello();
 event.on("iina.window-loaded", hello);
 event.on("iina.window-main.changed", (status) => {

@@ -174,5 +174,74 @@ eq(decoded.length, 1, "namespaced-less xml");
 eq(decoded[0].name, "foo.mp4", "cdata name");
 eq(decoded[0].path, "/dav/电影/foo.mp4", "decoded href path");
 
+import { debug, describeConn, error as logError, recentLogs, warn } from "../src/debug";
+
+eq(describeConn(null), "<none>", "describeConn null");
+eq(
+  describeConn({ scheme: "http", host: "example.com", port: "8080", path: "/dav", username: "user", insecure: true }),
+  "http://user@example.com:8080/dav insecure",
+  "describeConn full",
+);
+
+// Test logging and recentLogs memory buffer
+debug("test debug message");
+warn("test warning message");
+logError("test error message");
+assert(recentLogs.length >= 3, "recentLogs records entries");
+assert(recentLogs.some((l) => l.includes("[d]") && l.includes("test debug message")), "debug logged");
+assert(recentLogs.some((l) => l.includes("[w]") && l.includes("test warning message")), "warn logged");
+assert(recentLogs.some((l) => l.includes("[e]") && l.includes("test error message")), "error logged");
+
+// Test that file logging never calls file.read
+let readCalled = false;
+let handleCalled = false;
+let writeCalled = false;
+let seekToEndCalled = false;
+let closeCalled = false;
+let handleWrittenData = "";
+
+(globalThis as unknown as { iina: unknown }).iina = {
+  console: {
+    log: () => {},
+    warn: () => {},
+    error: () => {},
+  },
+  file: {
+    exists: () => true,
+    read: () => {
+      readCalled = true;
+      return "LARGE_FILE_CONTENT";
+    },
+    write: () => {
+      writeCalled = true;
+    },
+    handle: () => {
+      handleCalled = true;
+      return {
+        seekToEnd: () => {
+          seekToEndCalled = true;
+        },
+        offset: () => 500,
+        write: (data: string) => {
+          handleWrittenData = data;
+        },
+        close: () => {
+          closeCalled = true;
+        },
+      };
+    },
+  },
+};
+
+debug("append via handle test");
+assert(!readCalled, "file.read is NEVER called during append");
+assert(handleCalled, "file.handle is called during append");
+assert(seekToEndCalled, "handle.seekToEnd is called");
+assert(closeCalled, "handle.close is called");
+assert(handleWrittenData.includes("append via handle test"), "data written via handle");
+
+// Clean up global mock
+delete (globalThis as unknown as { iina?: unknown }).iina;
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

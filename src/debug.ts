@@ -1,6 +1,16 @@
 const PREFIX = "[webdav]";
 const LOG_FILE = "@data/debug.log";
-const MAX_BYTES = 400000;
+const MAX_BYTES = 200000;
+const RECENT_LIMIT = 50;
+
+export const recentLogs: string[] = [];
+
+function recordRecent(line: string): void {
+  recentLogs.push(line);
+  if (recentLogs.length > RECENT_LIMIT) {
+    recentLogs.shift();
+  }
+}
 
 function stringify(value: unknown): string {
   if (typeof value === "string") return value;
@@ -13,15 +23,34 @@ function stringify(value: unknown): string {
 }
 
 function append(line: string): void {
+  recordRecent(line);
   try {
-    const prev = iina.file.read(LOG_FILE) || "";
-    const next =
-      prev.length > MAX_BYTES
-        ? `${prev.slice(-Math.floor(MAX_BYTES / 2))}\n--- truncated ---\n${line}\n`
-        : `${prev}${prev && !prev.endsWith("\n") ? "\n" : ""}${line}\n`;
-    iina.file.write(LOG_FILE, next);
+    if (typeof iina === "undefined" || !iina.file) return;
+
+    const entry = `${line}\n`;
+
+    // Incremental append without reading the file from disk
+    if (typeof iina.file.handle === "function") {
+      if (!iina.file.exists(LOG_FILE)) {
+        iina.file.write(LOG_FILE, entry);
+        return;
+      }
+      const handle = iina.file.handle(LOG_FILE, "write");
+      if (handle) {
+        handle.seekToEnd();
+        const currentSize = handle.offset();
+        if (currentSize > MAX_BYTES) {
+          handle.close();
+          iina.file.write(LOG_FILE, `--- log rotated ---\n${entry}`);
+          return;
+        }
+        handle.write(entry);
+        handle.close();
+        return;
+      }
+    }
   } catch {
-    // ignore missing file API
+    // Logging failures must never interrupt application execution
   }
 }
 
@@ -31,19 +60,25 @@ function stamp(level: string, args: unknown[]): string {
 
 export function debug(...args: unknown[]): void {
   const line = stamp("d", args);
-  iina.console.log(line);
+  if (typeof iina !== "undefined" && iina.console && typeof iina.console.log === "function") {
+    iina.console.log(line);
+  }
   append(line);
 }
 
 export function warn(...args: unknown[]): void {
   const line = stamp("w", args);
-  iina.console.warn(line);
+  if (typeof iina !== "undefined" && iina.console && typeof iina.console.warn === "function") {
+    iina.console.warn(line);
+  }
   append(line);
 }
 
 export function error(...args: unknown[]): void {
   const line = stamp("e", args);
-  iina.console.error(line);
+  if (typeof iina !== "undefined" && iina.console && typeof iina.console.error === "function") {
+    iina.console.error(line);
+  }
   append(line);
 }
 
