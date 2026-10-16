@@ -26,6 +26,55 @@
   var selected = [];
   var anchorIndex = 0;
   var hasSavedPassword = false;
+  var lang = "en";
+  var strings = {
+    scheme: "Scheme",
+    host: "Host",
+    hostPlaceholder: "nas.local or full URL",
+    port: "Port",
+    path: "Path",
+    connect: "Connect",
+    user: "User",
+    optional: "optional",
+    password: "Password",
+    allowInsecure: "Allow self-signed certificates",
+    currentLocation: "Current location",
+    refresh: "Refresh",
+    directoryContents: "Directory contents",
+    name: "Name",
+    size: "Size",
+    modified: "Modified",
+    emptyHint1: "Enter a host, port, and path, then connect.",
+    emptyHint2: "You can also paste a full WebDAV URL into the host field.",
+    emptyFolder: "This folder has no visible items.",
+    includeSubfolders: "Include subfolders",
+    addSelected: "Add selected",
+    addFolder: "Add this folder to playlist",
+    root: "Root",
+    savedPassword: "saved",
+    remembered: "Last connection remembered. Click Connect to continue.",
+    notConnectedStatus: "Not connected",
+    hostRequired: "Enter a host.",
+  };
+
+  function applyI18n() {
+    document.documentElement.lang = lang === "zh" ? "zh-Hans" : "en";
+    var nodes = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < nodes.length; i++) {
+      var key = nodes[i].getAttribute("data-i18n");
+      if (strings[key]) nodes[i].textContent = strings[key];
+    }
+    var placeholders = document.querySelectorAll("[data-i18n-placeholder]");
+    for (var p = 0; p < placeholders.length; p++) {
+      var phKey = placeholders[p].getAttribute("data-i18n-placeholder");
+      if (strings[phKey]) placeholders[p].setAttribute("placeholder", strings[phKey]);
+    }
+    var arias = document.querySelectorAll("[data-i18n-aria]");
+    for (var a = 0; a < arias.length; a++) {
+      var ariaKey = arias[a].getAttribute("data-i18n-aria");
+      if (strings[ariaKey]) arias[a].setAttribute("aria-label", strings[ariaKey]);
+    }
+  }
 
   function bridge() {
     return typeof iina !== "undefined" && iina && typeof iina.postMessage === "function" ? iina : null;
@@ -110,7 +159,7 @@
       }
       crumbsEl.appendChild(btn);
     }
-    addCrumb("Root", "/", parts.length === 0);
+    addCrumb(strings.root || "Root", "/", parts.length === 0);
     for (var i = 0; i < parts.length; i++) {
       acc += "/" + parts[i];
       addCrumb(parts[i], acc, i === parts.length - 1);
@@ -193,7 +242,16 @@
       var empty = document.createElement("div");
       empty.className = "empty";
       empty.id = "empty";
-      empty.textContent = connected ? "This folder has no visible items." : "Enter a host, port, and path, then connect. You can also paste a full WebDAV URL into the host field.";
+      if (connected) {
+        empty.textContent = strings.emptyFolder;
+      } else {
+        empty.innerHTML =
+          "<span>" +
+          strings.emptyHint1 +
+          "</span><br /><span>" +
+          strings.emptyHint2 +
+          "</span>";
+      }
       listEl.appendChild(empty);
       syncButtons();
       return;
@@ -248,7 +306,7 @@
     event.preventDefault();
     var data = formData();
     if (!data.host) {
-      setStatus("Enter a host.", true, false);
+      setStatus(strings.hostRequired, true, false);
       hostEl.focus();
       return;
     }
@@ -315,10 +373,17 @@
 
   onMessage("init", function (data) {
     log("init", data && data.connection && data.connection.host);
+    if (data && data.lang) lang = data.lang;
+    if (data && data.strings) {
+      for (var key in data.strings) {
+        if (Object.prototype.hasOwnProperty.call(data.strings, key)) strings[key] = data.strings[key];
+      }
+    }
+    applyI18n();
     if (data && data.connection) applyConnection(data.connection);
     hasSavedPassword = Boolean(data && data.hasPassword);
-    if (hasSavedPassword && !passEl.value) passEl.placeholder = "saved";
-    setStatus(data && data.connection ? "Last connection remembered. Click Connect to continue." : "Not connected", false, false);
+    if (hasSavedPassword && !passEl.value) passEl.placeholder = strings.savedPassword;
+    setStatus(data && data.connection ? strings.remembered : strings.notConnectedStatus, false, false);
   });
 
   onMessage("connected", function (data) {
@@ -343,6 +408,7 @@
   });
 
   log("window script loaded", bridge() ? "iina" : "browser");
+  applyI18n();
   post("ready");
 
   if (!bridge()) {

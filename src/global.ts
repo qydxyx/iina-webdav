@@ -8,6 +8,7 @@ import {
   snapshotConnection,
 } from "./connections";
 import { debug, describeConn, error as logError, warn } from "./debug";
+import { allStrings, pluginLang, t } from "./i18n";
 import { formatModified, formatSize, isMediaFile } from "./media";
 import { basename, collectionUrl, mediaUrl, normalizePath, originOf, parentPath, parsePastedLocation, titleFromUrl } from "./paths";
 import { collectMedia, listDirectory, WebDavError } from "./webdav";
@@ -61,7 +62,7 @@ function waitForNewPlayer(since: number, timeoutMs = 8000): Promise<string> {
         resolve(found);
       } else if (Date.now() - since > timeoutMs) {
         clearInterval(timer);
-        reject(new Error("Timed out waiting for a player window."));
+        reject(new Error(t("playerTimeout")));
       }
     }, 80);
   });
@@ -97,7 +98,7 @@ function broadcastConnection(cfg: ConnectionConfig): void {
 }
 
 async function dispatchPlay(items: PlaylistEntry[], mode: "play" | "append"): Promise<void> {
-  if (items.length === 0) throw new Error("No playable media at this location.");
+  if (items.length === 0) throw new Error(t("noPlayableMedia"));
 
   const cfg = isUsableConnection(active) ? active : loadConnection();
   if (isUsableConnection(cfg)) broadcastConnection(cfg);
@@ -144,9 +145,9 @@ function serializeItems(items: DavItem[]) {
 }
 
 async function browse(path: string): Promise<void> {
-  if (!active) throw new Error("Not connected.");
+  if (!active) throw new Error(t("notConnected"));
   const listed = normalizePath(path);
-  send("status", { text: "Listing folder…", error: false, loading: true });
+  send("status", { text: t("listing"), error: false, loading: true });
   const items = await listDirectory(active, listed, activePassword);
   currentPath = listed;
   send("listing", {
@@ -156,7 +157,7 @@ async function browse(path: string): Promise<void> {
     items: serializeItems(items),
   });
   send("status", {
-    text: `${items.length} items · ${originOf(active)}${listed === "/" ? "/" : listed}`,
+    text: t("itemCount", { count: items.length, where: `${originOf(active)}${listed === "/" ? "/" : listed}` }),
     error: false,
     loading: false,
   });
@@ -169,7 +170,7 @@ function applyForm(data: Partial<ConnectionConfig> & { password?: string }): Con
     ...data,
     ...(pasted || {}),
   });
-  if (!merged.host) throw new Error("Enter a host.");
+  if (!merged.host) throw new Error(t("hostRequired"));
   return merged;
 }
 
@@ -184,6 +185,8 @@ function attachWindowHandlers(): void {
     send("init", {
       connection: saved,
       hasPassword: saved ? Boolean(loadPassword(saved)) : false,
+      lang: pluginLang(),
+      strings: allStrings(),
     });
   });
 
@@ -196,7 +199,7 @@ function attachWindowHandlers(): void {
       const cfg = applyForm(data);
       const password = data.password != null && data.password !== "" ? data.password : loadPassword(cfg);
       debug("connect", describeConn(cfg), password ? "password=yes" : "password=no");
-      send("status", { text: "Connecting…", error: false, loading: true });
+      send("status", { text: t("connecting"), error: false, loading: true });
       const listed = normalizePath(cfg.path);
       const items = await listDirectory(cfg, listed, password);
       debug("listed ok", listed, items.length);
@@ -226,7 +229,7 @@ function attachWindowHandlers(): void {
         items: serializeItems(items),
       });
       send("status", {
-        text: `${items.length} items · ${originOf(cfg)}${listed === "/" ? "/" : listed}`,
+        text: t("itemCount", { count: items.length, where: `${originOf(cfg)}${listed === "/" ? "/" : listed}` }),
         error: false,
         loading: false,
       });
@@ -250,14 +253,14 @@ function attachWindowHandlers(): void {
 
   standaloneWindow.onMessage("play-item", async (data: { path: string; isDir: boolean }) => {
     try {
-      if (!active) throw new Error("Not connected.");
+      if (!active) throw new Error(t("notConnected"));
       if (data.isDir) {
         await browse(data.path);
         return;
       }
       debug("play-item", data.path);
       await dispatchPlay([{ url: mediaUrl(active, data.path), title: basename(data.path) }], "play");
-      send("status", { text: "Playback started", error: false, loading: false });
+      send("status", { text: t("playbackStarted"), error: false, loading: false });
     } catch (error) {
       logError("play-item failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -266,14 +269,14 @@ function attachWindowHandlers(): void {
 
   standaloneWindow.onMessage("add-items", async (data: { paths: string[] }) => {
     try {
-      if (!active) throw new Error("Not connected.");
+      if (!active) throw new Error(t("notConnected"));
       const items = (data.paths || []).map((path) => ({
         url: mediaUrl(active as ConnectionConfig, path),
         title: basename(path),
       }));
       debug("add-items", items.length);
       await dispatchPlay(items, "append");
-      send("status", { text: `Added ${items.length} items to the playlist`, error: false, loading: false });
+      send("status", { text: t("addedItems", { count: items.length }), error: false, loading: false });
     } catch (error) {
       logError("add-items failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -282,14 +285,21 @@ function attachWindowHandlers(): void {
 
   standaloneWindow.onMessage("add-folder", async (data: { path?: string; recursive?: boolean }) => {
     try {
-      if (!active) throw new Error("Not connected.");
+      if (!active) throw new Error(t("notConnected"));
       const target = normalizePath(data.path || currentPath);
-      send("status", { text: data.recursive ? "Scanning subfolders…" : "Collecting media…", error: false, loading: true });
+      send("status", {
+        text: data.recursive ? t("scanningSubfolders") : t("collectingMedia"),
+        error: false,
+        loading: true,
+      });
       debug("add-folder", target, data.recursive ? "recursive" : "flat");
       const { urls, truncated } = await collectMedia(active, target, activePassword, Boolean(data.recursive));
       await dispatchPlay(toEntries(urls), "append");
-      const extra = truncated ? " (stopped at the 2000-item limit)" : "";
-      send("status", { text: `Added ${urls.length} items to the playlist${extra}`, error: false, loading: false });
+      send("status", {
+        text: t(truncated ? "addedItemsTruncated" : "addedItems", { count: urls.length }),
+        error: false,
+        loading: false,
+      });
     } catch (error) {
       logError("add-folder failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -308,7 +318,7 @@ function openWindow(): void {
 
 menu.addItem(
   menu.item(
-    "WebDAV Browser",
+    t("menuBrowser"),
     () => {
       openWindow();
     },

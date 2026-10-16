@@ -1,5 +1,6 @@
 import { base64Encode } from "./base64";
 import { debug, error as logError, warn } from "./debug";
+import { t } from "./i18n";
 import { MAX_DIR_DEPTH, MAX_PLAYLIST_ITEMS, isMediaFile } from "./media";
 import { collectionUrl, mediaUrl, normalizePath } from "./paths";
 import { parsePropfindXml } from "./parse-propfind";
@@ -65,17 +66,15 @@ function splitCurlOutput(stdout: string): { body: string; status: number } {
 }
 
 function describeFailure(status: number, stderr: string): string {
-  if (status === 401) return "Authentication failed. Check the username and password.";
-  if (status === 403) return "The server refused access to this path.";
-  if (status === 404) return "The path does not exist.";
-  if (status === 405) return "The server does not support WebDAV PROPFIND.";
-  if (/SSL|certificate|self signed/i.test(stderr)) {
-    return "Certificate verification failed. For a self-signed certificate, enable Allow self-signed certificates.";
-  }
-  if (/Could not resolve host/i.test(stderr)) return "Could not resolve the host name.";
-  if (/Connection refused|timed out|Timeout/i.test(stderr)) return "Could not reach the server. Check the address and port.";
-  if (status) return `The server returned HTTP ${status}.`;
-  return stderr.trim() || "Connection failed.";
+  if (status === 401) return t("err401");
+  if (status === 403) return t("err403");
+  if (status === 404) return t("err404");
+  if (status === 405) return t("err405");
+  if (/SSL|certificate|self signed/i.test(stderr)) return t("errCert");
+  if (/Could not resolve host/i.test(stderr)) return t("errHost");
+  if (/Connection refused|timed out|Timeout/i.test(stderr)) return t("errConnect");
+  if (status) return t("errHttp", { status });
+  return stderr.trim() || t("errFailed");
 }
 
 export async function listDirectory(
@@ -93,7 +92,7 @@ export async function listDirectory(
   const result = await utils.exec("/usr/bin/curl", curlArgs(cfg, password, url, bodyPath));
   if (result.status !== 0 && !result.stdout) {
     logError("curl failed", result.status, result.stderr);
-    throw new WebDavError(describeFailure(0, result.stderr || `curl exit code ${result.status}`));
+    throw new WebDavError(describeFailure(0, result.stderr || t("curlExit", { status: result.status })));
   }
 
   const { body, status } = splitCurlOutput(result.stdout || "");

@@ -1,3 +1,4 @@
+import { EN, ZH, resolveLang, t } from "../src/i18n";
 import { base64Encode } from "../src/base64";
 import { isUsableConnection, sanitize, snapshotConnection } from "../src/connections";
 import { formatModified, formatSize, isHiddenName, isMediaFile } from "../src/media";
@@ -37,6 +38,18 @@ function eq<T>(actual: T, expected: T, message: string): void {
   failed += 1;
   console.error(`FAIL ${message}\n  expected ${JSON.stringify(expected)}\n  actual   ${JSON.stringify(actual)}`);
 }
+
+eq(resolveLang([]), "en", "empty locales is english");
+eq(resolveLang(["en"]), "en", "english");
+eq(resolveLang(["ja", "zh-Hans"]), "en", "non-chinese first is english");
+eq(resolveLang(["zh-Hans"]), "zh", "zh-Hans");
+eq(resolveLang(["zh-Hant"]), "zh", "zh-Hant");
+eq(resolveLang(["zh_CN"]), "zh", "zh_CN underscore");
+eq(resolveLang(["zh"]), "zh", "zh");
+eq(t("connect"), "Connect", "t defaults to english without IINA locale");
+(Object.keys(EN) as (keyof typeof EN)[]).forEach((key) => {
+  assert(typeof ZH[key] === "string" && ZH[key].length > 0, "zh has " + key);
+});
 
 eq(normalizePath(""), "/", "empty path");
 eq(normalizePath("webdav"), "/webdav", "relative path");

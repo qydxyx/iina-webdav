@@ -13,58 +13,58 @@
       <form id="connect-form" autocomplete="off">
         <div class="row">
           <label class="field scheme">
-            <span>Scheme</span>
+            <span data-i18n="scheme">Scheme</span>
             <select id="scheme" name="scheme">
               <option value="https">https</option>
               <option value="http">http</option>
             </select>
           </label>
           <label class="field host">
-            <span>Host</span>
-            <input id="host" name="host" type="text" placeholder="nas.local or full URL" spellcheck="false" />
+            <span data-i18n="host">Host</span>
+            <input id="host" name="host" type="text" data-i18n-placeholder="hostPlaceholder" placeholder="nas.local or full URL" spellcheck="false" />
           </label>
           <label class="field port">
-            <span>Port</span>
+            <span data-i18n="port">Port</span>
             <input id="port" name="port" type="text" inputmode="numeric" placeholder="443" spellcheck="false" />
           </label>
           <label class="field path">
-            <span>Path</span>
+            <span data-i18n="path">Path</span>
             <input id="path" name="path" type="text" placeholder="/webdav" spellcheck="false" />
           </label>
-          <button type="submit" class="btn primary" id="connect-btn">Connect</button>
+          <button type="submit" class="btn primary" id="connect-btn" data-i18n="connect">Connect</button>
         </div>
         <div class="row">
           <label class="field user">
-            <span>User</span>
-            <input id="username" name="username" type="text" placeholder="optional" spellcheck="false" />
+            <span data-i18n="user">User</span>
+            <input id="username" name="username" type="text" data-i18n-placeholder="optional" placeholder="optional" spellcheck="false" />
           </label>
           <label class="field password">
-            <span>Password</span>
-            <input id="password" name="password" type="password" placeholder="optional" />
+            <span data-i18n="password">Password</span>
+            <input id="password" name="password" type="password" data-i18n-placeholder="optional" placeholder="optional" />
           </label>
           <label class="check">
             <input id="insecure" name="insecure" type="checkbox" />
-            Allow self-signed certificates
+            <span data-i18n="allowInsecure">Allow self-signed certificates</span>
           </label>
         </div>
       </form>
     </header>
 
-    <nav class="crumbs" id="crumbs" aria-label="Current location">
+    <nav class="crumbs" id="crumbs" data-i18n-aria="currentLocation" aria-label="Current location">
       <div class="crumbs-path" id="crumbs-path"></div>
-      <button type="button" class="btn ghost" id="refresh-btn" disabled>Refresh</button>
+      <button type="button" class="btn ghost" id="refresh-btn" data-i18n="refresh" disabled>Refresh</button>
     </nav>
 
-    <section class="table" aria-label="Directory contents">
+    <section class="table" data-i18n-aria="directoryContents" aria-label="Directory contents">
       <div class="thead">
-        <div class="col name">Name</div>
-        <div class="col size">Size</div>
-        <div class="col modified">Modified</div>
+        <div class="col name" data-i18n="name">Name</div>
+        <div class="col size" data-i18n="size">Size</div>
+        <div class="col modified" data-i18n="modified">Modified</div>
       </div>
       <div class="tbody" id="list" role="listbox" aria-multiselectable="true" tabindex="0">
         <div class="empty" id="empty">
-          Enter a host, port, and path, then connect.<br />
-          You can also paste a full WebDAV URL into the host field.
+          <span data-i18n="emptyHint1">Enter a host, port, and path, then connect.</span><br />
+          <span data-i18n="emptyHint2">You can also paste a full WebDAV URL into the host field.</span>
         </div>
       </div>
     </section>
@@ -72,14 +72,14 @@
     <footer class="footer">
       <label class="check">
         <input id="recursive" type="checkbox" checked />
-        Include subfolders
+        <span data-i18n="includeSubfolders">Include subfolders</span>
       </label>
       <div class="spacer"></div>
-      <button type="button" class="btn" id="add-selected-btn" disabled>Add selected</button>
-      <button type="button" class="btn" id="add-folder-btn" disabled>Add this folder to playlist</button>
+      <button type="button" class="btn" id="add-selected-btn" data-i18n="addSelected" disabled>Add selected</button>
+      <button type="button" class="btn" id="add-folder-btn" data-i18n="addFolder" disabled>Add this folder to playlist</button>
     </footer>
 
-    <div class="status" id="status" role="status">Not connected</div>
+    <div class="status" id="status" role="status" data-i18n="notConnectedStatus">Not connected</div>
 
     <script src="window.js"></script>
   </body>

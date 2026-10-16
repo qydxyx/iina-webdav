@@ -10,6 +10,7 @@ An IINA 1.4+ plugin that opens a browser window, connects to a WebDAV server (Sy
 - Browse folders, double-click to play, multi-select to add to the playlist
 - Add the current folder to the playlist (includes subfolders by default; can be turned off in the window)
 - Opens a new player window when none is open
+- Follows IINA’s language: Chinese UI when IINA is Chinese, English otherwise
 
 ## Requirements
 

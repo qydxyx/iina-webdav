@@ -1,7 +1,7 @@
 {
   "name": "WebDAV",
   "identifier": "com.qydxyx.iina-webdav",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Connect to a WebDAV server, browse media, and add folders to the playlist.",
   "author": {
     "name": "qydxyx"
@@ -10,7 +10,7 @@
   "globalEntry": "dist/global.js",
   "helpPage": "help.html",
   "ghRepo": "qydxyx/iina-webdav",
-  "ghVersion": 2,
+  "ghVersion": 3,
   "permissions": [
     "show-osd",
     "show-alert",

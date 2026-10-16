@@ -1,6 +1,7 @@
 import { base64Encode } from "./base64";
 import { isUsableConnection, loadConnection, loadPassword, sanitize } from "./connections";
 import { debug, describeConn, error as logError, warn } from "./debug";
+import { t } from "./i18n";
 import { authenticatedStreamUrl, stripPlaybackWrapper, titleFromUrl, urlBelongsTo } from "./paths";
 import type { ConnectionConfig, PlaylistEntry, PlayRequest } from "./types";
 
@@ -218,7 +219,7 @@ global.onMessage("play", (data: PlayRequest) => {
   debug("play", items.length, items[0] ? items[0].title : "");
   if (items.length === 0) return;
   loadEntries(items, "play");
-  core.osd(`WebDAV: playing ${items.length} items`);
+  core.osd(t("osdPlaying", { count: items.length }));
 });
 
 global.onMessage("add-to-playlist", (data: PlayRequest) => {
@@ -227,7 +228,7 @@ global.onMessage("add-to-playlist", (data: PlayRequest) => {
   debug("add-to-playlist", items.length, items[0].title);
   loadEntries(items, "append");
   debug("playlist count", playlist.count());
-  core.osd(`WebDAV: added ${items.length} items`);
+  core.osd(t("osdAdded", { count: items.length }));
 });
 
 // Sync hook: do not take or call `next`. IINA treats a 1-arg callback as async
