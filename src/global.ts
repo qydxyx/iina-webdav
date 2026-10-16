@@ -61,7 +61,7 @@ function waitForNewPlayer(since: number, timeoutMs = 8000): Promise<string> {
         resolve(found);
       } else if (Date.now() - since > timeoutMs) {
         clearInterval(timer);
-        reject(new Error("等待播放器窗口超时"));
+        reject(new Error("Timed out waiting for a player window."));
       }
     }, 80);
   });
@@ -97,7 +97,7 @@ function broadcastConnection(cfg: ConnectionConfig): void {
 }
 
 async function dispatchPlay(items: PlaylistEntry[], mode: "play" | "append"): Promise<void> {
-  if (items.length === 0) throw new Error("这个位置没有可播放的媒体文件。");
+  if (items.length === 0) throw new Error("No playable media at this location.");
 
   const cfg = isUsableConnection(active) ? active : loadConnection();
   if (isUsableConnection(cfg)) broadcastConnection(cfg);
@@ -144,9 +144,9 @@ function serializeItems(items: DavItem[]) {
 }
 
 async function browse(path: string): Promise<void> {
-  if (!active) throw new Error("尚未连接。");
+  if (!active) throw new Error("Not connected.");
   const listed = normalizePath(path);
-  send("status", { text: "正在列出目录…", error: false, loading: true });
+  send("status", { text: "Listing folder…", error: false, loading: true });
   const items = await listDirectory(active, listed, activePassword);
   currentPath = listed;
   send("listing", {
@@ -156,7 +156,7 @@ async function browse(path: string): Promise<void> {
     items: serializeItems(items),
   });
   send("status", {
-    text: `${items.length} 项 · ${originOf(active)}${listed === "/" ? "/" : listed}`,
+    text: `${items.length} items · ${originOf(active)}${listed === "/" ? "/" : listed}`,
     error: false,
     loading: false,
   });
@@ -169,7 +169,7 @@ function applyForm(data: Partial<ConnectionConfig> & { password?: string }): Con
     ...data,
     ...(pasted || {}),
   });
-  if (!merged.host) throw new Error("请填写主机地址。");
+  if (!merged.host) throw new Error("Enter a host.");
   return merged;
 }
 
@@ -196,7 +196,7 @@ function attachWindowHandlers(): void {
       const cfg = applyForm(data);
       const password = data.password != null && data.password !== "" ? data.password : loadPassword(cfg);
       debug("connect", describeConn(cfg), password ? "password=yes" : "password=no");
-      send("status", { text: "正在连接…", error: false, loading: true });
+      send("status", { text: "Connecting…", error: false, loading: true });
       const listed = normalizePath(cfg.path);
       const items = await listDirectory(cfg, listed, password);
       debug("listed ok", listed, items.length);
@@ -226,7 +226,7 @@ function attachWindowHandlers(): void {
         items: serializeItems(items),
       });
       send("status", {
-        text: `${items.length} 项 · ${originOf(cfg)}${listed === "/" ? "/" : listed}`,
+        text: `${items.length} items · ${originOf(cfg)}${listed === "/" ? "/" : listed}`,
         error: false,
         loading: false,
       });
@@ -250,14 +250,14 @@ function attachWindowHandlers(): void {
 
   standaloneWindow.onMessage("play-item", async (data: { path: string; isDir: boolean }) => {
     try {
-      if (!active) throw new Error("尚未连接。");
+      if (!active) throw new Error("Not connected.");
       if (data.isDir) {
         await browse(data.path);
         return;
       }
       debug("play-item", data.path);
       await dispatchPlay([{ url: mediaUrl(active, data.path), title: basename(data.path) }], "play");
-      send("status", { text: "已开始播放", error: false, loading: false });
+      send("status", { text: "Playback started", error: false, loading: false });
     } catch (error) {
       logError("play-item failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -266,14 +266,14 @@ function attachWindowHandlers(): void {
 
   standaloneWindow.onMessage("add-items", async (data: { paths: string[] }) => {
     try {
-      if (!active) throw new Error("尚未连接。");
+      if (!active) throw new Error("Not connected.");
       const items = (data.paths || []).map((path) => ({
         url: mediaUrl(active as ConnectionConfig, path),
         title: basename(path),
       }));
       debug("add-items", items.length);
       await dispatchPlay(items, "append");
-      send("status", { text: `已加入 ${items.length} 项到播放列表`, error: false, loading: false });
+      send("status", { text: `Added ${items.length} items to the playlist`, error: false, loading: false });
     } catch (error) {
       logError("add-items failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -282,14 +282,14 @@ function attachWindowHandlers(): void {
 
   standaloneWindow.onMessage("add-folder", async (data: { path?: string; recursive?: boolean }) => {
     try {
-      if (!active) throw new Error("尚未连接。");
+      if (!active) throw new Error("Not connected.");
       const target = normalizePath(data.path || currentPath);
-      send("status", { text: data.recursive ? "正在扫描子文件夹…" : "正在收集媒体…", error: false, loading: true });
+      send("status", { text: data.recursive ? "Scanning subfolders…" : "Collecting media…", error: false, loading: true });
       debug("add-folder", target, data.recursive ? "recursive" : "flat");
       const { urls, truncated } = await collectMedia(active, target, activePassword, Boolean(data.recursive));
       await dispatchPlay(toEntries(urls), "append");
-      const extra = truncated ? "（已达 2000 项上限，其余未加入）" : "";
-      send("status", { text: `已加入 ${urls.length} 项到播放列表${extra}`, error: false, loading: false });
+      const extra = truncated ? " (stopped at the 2000-item limit)" : "";
+      send("status", { text: `Added ${urls.length} items to the playlist${extra}`, error: false, loading: false });
     } catch (error) {
       logError("add-folder failed", errorText(error));
       send("status", { text: errorText(error), error: true, loading: false });
@@ -308,7 +308,7 @@ function openWindow(): void {
 
 menu.addItem(
   menu.item(
-    "WebDAV 浏览器",
+    "WebDAV Browser",
     () => {
       openWindow();
     },

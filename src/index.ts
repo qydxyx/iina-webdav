@@ -218,7 +218,7 @@ global.onMessage("play", (data: PlayRequest) => {
   debug("play", items.length, items[0] ? items[0].title : "");
   if (items.length === 0) return;
   loadEntries(items, "play");
-  core.osd(`WebDAV：播放 ${items.length} 项`);
+  core.osd(`WebDAV: playing ${items.length} items`);
 });
 
 global.onMessage("add-to-playlist", (data: PlayRequest) => {
@@ -227,7 +227,7 @@ global.onMessage("add-to-playlist", (data: PlayRequest) => {
   debug("add-to-playlist", items.length, items[0].title);
   loadEntries(items, "append");
   debug("playlist count", playlist.count());
-  core.osd(`WebDAV：已加入 ${items.length} 项`);
+  core.osd(`WebDAV: added ${items.length} items`);
 });
 
 // Sync hook: do not take or call `next`. IINA treats a 1-arg callback as async

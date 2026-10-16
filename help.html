@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>WebDAV 插件说明</title>
+    <title>WebDAV plugin</title>
     <style>
       body {
         font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
@@ -31,28 +31,28 @@
   </head>
   <body>
     <h1>WebDAV</h1>
-    <p>连接 NAS 或其它 WebDAV 服务，浏览媒体，并把文件或整个目录加入 IINA 播放列表。</p>
+    <p>Connect to a NAS or other WebDAV server, browse media, and add files or whole folders to the IINA playlist.</p>
 
-    <h2>打开窗口</h2>
-    <p>菜单 <strong>插件 → WebDAV 浏览器</strong>，快捷键 <kbd>⌥</kbd><kbd>⌘</kbd><kbd>D</kbd>。没有正在播放的窗口时也可以打开。</p>
+    <h2>Open the window</h2>
+    <p>Menu <strong>Plugins → WebDAV Browser</strong>, shortcut <kbd>⌥</kbd><kbd>⌘</kbd><kbd>D</kbd>. You can open it even when no player window is open.</p>
 
-    <h2>连接</h2>
+    <h2>Connect</h2>
     <ul>
-      <li>协议、主机、端口、路径。端口留空时 https 为 443，http 为 80。</li>
-      <li>可以把完整地址粘贴到主机栏，例如 <code>https://nas.local:5006/webdav</code>。</li>
-      <li>用户名和密码使用 HTTP Basic。密码保存在钥匙串，不会写进播放列表 URL。</li>
-      <li>自签证书请勾选「允许自签证书」。</li>
+      <li>Scheme, host, port, and path. An empty port is 443 for https and 80 for http.</li>
+      <li>Paste a full URL into the host field, for example <code>https://nas.local:5006/webdav</code>.</li>
+      <li>Username and password use HTTP Basic. The password is stored in Keychain and is not written into playlist URLs.</li>
+      <li>For a self-signed certificate, enable <strong>Allow self-signed certificates</strong>.</li>
     </ul>
 
-    <h2>浏览与播放</h2>
+    <h2>Browse and play</h2>
     <ul>
-      <li>双击文件夹进入；双击媒体文件立即播放。</li>
-      <li>选中若干文件或文件夹后点「加入选中」。</li>
-      <li>「将此目录加入播放列表」会收集当前目录里的媒体。默认包含子文件夹，可在窗口里关掉。</li>
-      <li>没有已打开的播放器时，会新建一个窗口再加入列表。</li>
+      <li>Double-click a folder to open it; double-click a media file to play it.</li>
+      <li>Select files or folders, then click <strong>Add selected</strong>.</li>
+      <li><strong>Add this folder to playlist</strong> collects media in the current folder. Subfolders are included by default; you can turn that off in the window.</li>
+      <li>If no player is open, a new window is created before items are added.</li>
     </ul>
 
-    <h2>限制</h2>
-    <p>递归最深 8 层，单次最多 2000 个媒体文件。不支持上传、删除、重命名，也不支持 Digest / Bearer 认证。</p>
+    <h2>Limits</h2>
+    <p>Recursion depth is 8, with at most 2000 media files per add. Upload, delete, rename, Digest, and Bearer auth are not supported.</p>
   </body>
 </html>

@@ -110,7 +110,7 @@
       }
       crumbsEl.appendChild(btn);
     }
-    addCrumb("根目录", "/", parts.length === 0);
+    addCrumb("Root", "/", parts.length === 0);
     for (var i = 0; i < parts.length; i++) {
       acc += "/" + parts[i];
       addCrumb(parts[i], acc, i === parts.length - 1);
@@ -193,7 +193,7 @@
       var empty = document.createElement("div");
       empty.className = "empty";
       empty.id = "empty";
-      empty.textContent = connected ? "此目录没有可见项目" : "填写主机、端口和路径后点连接。也可以把完整 WebDAV 地址粘贴到主机栏。";
+      empty.textContent = connected ? "This folder has no visible items." : "Enter a host, port, and path, then connect. You can also paste a full WebDAV URL into the host field.";
       listEl.appendChild(empty);
       syncButtons();
       return;
@@ -248,7 +248,7 @@
     event.preventDefault();
     var data = formData();
     if (!data.host) {
-      setStatus("请填写主机地址。", true, false);
+      setStatus("Enter a host.", true, false);
       hostEl.focus();
       return;
     }
@@ -317,8 +317,8 @@
     log("init", data && data.connection && data.connection.host);
     if (data && data.connection) applyConnection(data.connection);
     hasSavedPassword = Boolean(data && data.hasPassword);
-    if (hasSavedPassword && !passEl.value) passEl.placeholder = "已保存";
-    setStatus(data && data.connection ? "已记住上次连接，点连接即可继续。" : "尚未连接", false, false);
+    if (hasSavedPassword && !passEl.value) passEl.placeholder = "saved";
+    setStatus(data && data.connection ? "Last connection remembered. Click Connect to continue." : "Not connected", false, false);
   });
 
   onMessage("connected", function (data) {
@@ -351,10 +351,10 @@
     parentPath = "/";
     renderCrumbs(currentPath);
     renderList([
-      { path: "/Movies/Shows", name: "剧集", isDir: true, isMedia: false, size: "—", modified: "2024-11-02 21:10" },
+      { path: "/Movies/Shows", name: "Shows", isDir: true, isMedia: false, size: "—", modified: "2024-11-02 21:10" },
       { path: "/Movies/Dune.mkv", name: "Dune.mkv", isDir: false, isMedia: true, size: "12.4 GB", modified: "2024-08-18 09:41" },
       { path: "/Movies/Score.flac", name: "Score.flac", isDir: false, isMedia: true, size: "312 MB", modified: "2023-12-01 18:02" },
     ]);
-    setStatus("浏览器预览 · 3 项 · https://nas.local/Movies", false, false);
+    setStatus("Browser preview · 3 items · https://nas.local/Movies", false, false);
   }
 })();

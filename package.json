@@ -1,6 +1,6 @@
 {
   "name": "iina-webdav",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Browse a WebDAV share and add media to the IINA playlist",
   "scripts": {

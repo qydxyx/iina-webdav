@@ -65,17 +65,17 @@ function splitCurlOutput(stdout: string): { body: string; status: number } {
 }
 
 function describeFailure(status: number, stderr: string): string {
-  if (status === 401) return "认证失败，请检查用户名和密码。";
-  if (status === 403) return "服务器拒绝访问该路径。";
-  if (status === 404) return "路径不存在。";
-  if (status === 405) return "服务器不支持 WebDAV PROPFIND。";
+  if (status === 401) return "Authentication failed. Check the username and password.";
+  if (status === 403) return "The server refused access to this path.";
+  if (status === 404) return "The path does not exist.";
+  if (status === 405) return "The server does not support WebDAV PROPFIND.";
   if (/SSL|certificate|self signed/i.test(stderr)) {
-    return "证书校验失败。若使用自签证书，请勾选「允许自签证书」。";
+    return "Certificate verification failed. For a self-signed certificate, enable Allow self-signed certificates.";
   }
-  if (/Could not resolve host/i.test(stderr)) return "无法解析主机名。";
-  if (/Connection refused|timed out|Timeout/i.test(stderr)) return "无法连接服务器，请检查地址和端口。";
-  if (status) return `服务器返回 HTTP ${status}。`;
-  return stderr.trim() || "连接失败。";
+  if (/Could not resolve host/i.test(stderr)) return "Could not resolve the host name.";
+  if (/Connection refused|timed out|Timeout/i.test(stderr)) return "Could not reach the server. Check the address and port.";
+  if (status) return `The server returned HTTP ${status}.`;
+  return stderr.trim() || "Connection failed.";
 }
 
 export async function listDirectory(
@@ -93,7 +93,7 @@ export async function listDirectory(
   const result = await utils.exec("/usr/bin/curl", curlArgs(cfg, password, url, bodyPath));
   if (result.status !== 0 && !result.stdout) {
     logError("curl failed", result.status, result.stderr);
-    throw new WebDavError(describeFailure(0, result.stderr || `curl 退出码 ${result.status}`));
+    throw new WebDavError(describeFailure(0, result.stderr || `curl exit code ${result.status}`));
   }
 
   const { body, status } = splitCurlOutput(result.stdout || "");

@@ -1,8 +1,8 @@
 {
   "name": "WebDAV",
   "identifier": "com.qydxyx.iina-webdav",
-  "version": "1.0.0",
-  "description": "连接 WebDAV 服务器，浏览媒体并把目录加入当前播放列表。",
+  "version": "1.0.1",
+  "description": "Connect to a WebDAV server, browse media, and add folders to the playlist.",
   "author": {
     "name": "qydxyx"
   },
@@ -10,7 +10,7 @@
   "globalEntry": "dist/global.js",
   "helpPage": "help.html",
   "ghRepo": "qydxyx/iina-webdav",
-  "ghVersion": 1,
+  "ghVersion": 2,
   "permissions": [
     "show-osd",
     "show-alert",
