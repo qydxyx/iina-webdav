@@ -1,0 +1,36 @@
+{
+  "name": "iina-webdav",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browse a WebDAV share and add media to the IINA playlist",
+  "scripts": {
+    "build": "rm -rf dist .parcel-cache && parcel build . --no-source-maps --no-content-hash",
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx tests/all.test.ts"
+  },
+  "browserslist": "safari >= 11",
+  "entry": "dist/index.js",
+  "globalEntry": "dist/global.js",
+  "targets": {
+    "main": false,
+    "entry": {
+      "source": "src/index.ts",
+      "isLibrary": false,
+      "context": "browser",
+      "outputFormat": "global"
+    },
+    "globalEntry": {
+      "source": "src/global.ts",
+      "isLibrary": false,
+      "context": "browser",
+      "outputFormat": "global"
+    }
+  },
+  "devDependencies": {
+    "@parcel/transformer-typescript-tsc": "^2.16.4",
+    "iina-plugin-definition": "^0.99.4",
+    "parcel": "^2.13.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

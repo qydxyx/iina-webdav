@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebDAV</title>
+    <link rel="stylesheet" href="window.css" />
+  </head>
+  <body>
+    <div class="progress" id="progress" hidden></div>
+
+    <header class="toolbar">
+      <form id="connect-form" autocomplete="off">
+        <div class="row">
+          <label class="field scheme">
+            <span>协议</span>
+            <select id="scheme" name="scheme">
+              <option value="https">https</option>
+              <option value="http">http</option>
+            </select>
+          </label>
+          <label class="field host">
+            <span>主机</span>
+            <input id="host" name="host" type="text" placeholder="nas.local 或完整 URL" spellcheck="false" />
+          </label>
+          <label class="field port">
+            <span>端口</span>
+            <input id="port" name="port" type="text" inputmode="numeric" placeholder="443" spellcheck="false" />
+          </label>
+          <label class="field path">
+            <span>路径</span>
+            <input id="path" name="path" type="text" placeholder="/webdav" spellcheck="false" />
+          </label>
+          <button type="submit" class="btn primary" id="connect-btn">连接</button>
+        </div>
+        <div class="row">
+          <label class="field user">
+            <span>用户</span>
+            <input id="username" name="username" type="text" placeholder="可选" spellcheck="false" />
+          </label>
+          <label class="field password">
+            <span>密码</span>
+            <input id="password" name="password" type="password" placeholder="可选" />
+          </label>
+          <label class="check">
+            <input id="insecure" name="insecure" type="checkbox" />
+            允许自签证书
+          </label>
+        </div>
+      </form>
+    </header>
+
+    <nav class="crumbs" id="crumbs" aria-label="当前位置">
+      <div class="crumbs-path" id="crumbs-path"></div>
+      <button type="button" class="btn ghost" id="refresh-btn" disabled>刷新</button>
+    </nav>
+
+    <section class="table" aria-label="目录内容">
+      <div class="thead">
+        <div class="col name">名称</div>
+        <div class="col size">大小</div>
+        <div class="col modified">修改时间</div>
+      </div>
+      <div class="tbody" id="list" role="listbox" aria-multiselectable="true" tabindex="0">
+        <div class="empty" id="empty">
+          填写主机、端口和路径后点连接。<br />
+          也可以把完整 WebDAV 地址粘贴到主机栏。
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <label class="check">
+        <input id="recursive" type="checkbox" checked />
+        包含子文件夹
+      </label>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="add-selected-btn" disabled>加入选中</button>
+      <button type="button" class="btn" id="add-folder-btn" disabled>将此目录加入播放列表</button>
+    </footer>
+
+    <div class="status" id="status" role="status">尚未连接</div>
+
+    <script src="window.js"></script>
+  </body>
+</html>

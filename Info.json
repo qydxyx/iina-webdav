@@ -1,0 +1,34 @@
+{
+  "name": "WebDAV",
+  "identifier": "com.qydxyx.iina-webdav",
+  "version": "1.0.0",
+  "description": "连接 WebDAV 服务器，浏览媒体并把目录加入当前播放列表。",
+  "author": {
+    "name": "qydxyx"
+  },
+  "entry": "dist/index.js",
+  "globalEntry": "dist/global.js",
+  "helpPage": "help.html",
+  "ghRepo": "qydxyx/iina-webdav",
+  "ghVersion": 1,
+  "permissions": [
+    "show-osd",
+    "show-alert",
+    "network-request",
+    "file-system"
+  ],
+  "allowedDomains": ["*"],
+  "preferenceDefaults": {
+    "lastConnection": ""
+  },
+  "localized": {
+    "zh-Hans": {
+      "name": "WebDAV",
+      "description": "连接 WebDAV 服务器，浏览媒体并把目录加入当前播放列表。"
+    },
+    "en": {
+      "name": "WebDAV",
+      "description": "Connect to a WebDAV server, browse media, and add folders to the playlist."
+    }
+  }
+}

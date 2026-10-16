@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebDAV 插件说明</title>
+    <style>
+      body {
+        font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+        margin: 24px;
+        color: #1d1d1f;
+      }
+      h1 {
+        font-size: 20px;
+        font-weight: 650;
+      }
+      h2 {
+        font-size: 15px;
+        margin-top: 1.4em;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+      kbd {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 0 5px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebDAV</h1>
+    <p>连接 NAS 或其它 WebDAV 服务，浏览媒体，并把文件或整个目录加入 IINA 播放列表。</p>
+
+    <h2>打开窗口</h2>
+    <p>菜单 <strong>插件 → WebDAV 浏览器</strong>，快捷键 <kbd>⌥</kbd><kbd>⌘</kbd><kbd>D</kbd>。没有正在播放的窗口时也可以打开。</p>
+
+    <h2>连接</h2>
+    <ul>
+      <li>协议、主机、端口、路径。端口留空时 https 为 443，http 为 80。</li>
+      <li>可以把完整地址粘贴到主机栏，例如 <code>https://nas.local:5006/webdav</code>。</li>
+      <li>用户名和密码使用 HTTP Basic。密码保存在钥匙串，不会写进播放列表 URL。</li>
+      <li>自签证书请勾选「允许自签证书」。</li>
+    </ul>
+
+    <h2>浏览与播放</h2>
+    <ul>
+      <li>双击文件夹进入；双击媒体文件立即播放。</li>
+      <li>选中若干文件或文件夹后点「加入选中」。</li>
+      <li>「将此目录加入播放列表」会收集当前目录里的媒体。默认包含子文件夹，可在窗口里关掉。</li>
+      <li>没有已打开的播放器时，会新建一个窗口再加入列表。</li>
+    </ul>
+
+    <h2>限制</h2>
+    <p>递归最深 8 层，单次最多 2000 个媒体文件。不支持上传、删除、重命名，也不支持 Digest / Bearer 认证。</p>
+  </body>
+</html>
