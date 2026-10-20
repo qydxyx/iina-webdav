@@ -12,6 +12,15 @@
     <header class="toolbar">
       <form id="connect-form" autocomplete="off">
         <div class="row">
+          <label class="field server">
+            <span data-i18n="server">Server</span>
+            <select id="server-select" name="server">
+              <option value="" data-i18n="newServer">New server…</option>
+            </select>
+          </label>
+          <button type="button" class="btn ghost" id="forget-btn" data-i18n="forgetServer" disabled>Forget</button>
+        </div>
+        <div class="row">
           <label class="field scheme">
             <span data-i18n="scheme">Scheme</span>
             <select id="scheme" name="scheme">

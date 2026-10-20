@@ -1,9 +1,11 @@
 import { warn } from "./debug";
-import { normalizePath } from "./paths";
-import type { ConnectionConfig, Scheme } from "./types";
+import { effectivePort, normalizePath } from "./paths";
+import type { ConnectionConfig, SavedConnection, Scheme } from "./types";
 
 const KEYCHAIN_SERVICE = "webdav";
 const PREF_KEY = "lastConnection";
+const SAVED_KEY = "savedConnections";
+export const MAX_SAVED_CONNECTIONS = 20;
 
 export function accountName(cfg: ConnectionConfig): string {
   const user = cfg.username || "anonymous";
@@ -58,6 +60,124 @@ export function loadConnection(): ConnectionConfig | null {
     warn("load connection failed", String(error));
     return null;
   }
+}
+
+/** Identity of a reusable server: scheme, host, effective port, exact username. */
+export function connectionId(
+  cfg: Pick<ConnectionConfig, "scheme" | "host" | "port" | "username">,
+): string {
+  const scheme: Scheme = cfg.scheme === "http" ? "http" : "https";
+  const host = (cfg.host || "").trim().toLowerCase();
+  const user = (cfg.username || "").trim();
+  return `${scheme}://${user}@${host}:${effectivePort({ scheme, port: cfg.port })}`;
+}
+
+export function serverLabel(entry: Pick<ConnectionConfig, "scheme" | "host" | "port" | "path" | "username">): string {
+  const scheme: Scheme = entry.scheme === "http" ? "http" : "https";
+  const user = (entry.username || "").trim();
+  const host = (entry.host || "").trim();
+  const path = normalizePath(entry.path || "/");
+  return `${scheme}://${user ? `${user}@` : ""}${host}:${effectivePort({ scheme, port: entry.port })}${path}`;
+}
+
+export function parseSavedConnections(raw: unknown): SavedConnection[] {
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    warn("parse saved connections failed", String(error));
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const entries: SavedConnection[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== "object") continue;
+    const candidate = item as Partial<SavedConnection>;
+    if (typeof candidate.host !== "string" || !candidate.host.trim()) continue;
+    const clean = sanitize(candidate);
+    const at = Number(candidate.lastUsed);
+    entries.push({ ...clean, lastUsed: Number.isFinite(at) && at > 0 ? at : 0 });
+  }
+  entries.sort((a, b) => b.lastUsed - a.lastUsed);
+  const seen = new Set<string>();
+  const unique: SavedConnection[] = [];
+  for (const entry of entries) {
+    const id = connectionId(entry);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    unique.push(entry);
+    if (unique.length >= MAX_SAVED_CONNECTIONS) break;
+  }
+  return unique;
+}
+
+export function serializeSavedConnections(list: SavedConnection[]): string {
+  return JSON.stringify(list);
+}
+
+export function upsertSavedConnection(
+  list: SavedConnection[],
+  cfg: ConnectionConfig,
+  now: number,
+): SavedConnection[] {
+  const clean = sanitize(cfg);
+  const entry: SavedConnection = { ...clean, lastUsed: now };
+  const id = connectionId(entry);
+  const next = list.filter((item) => connectionId(item) !== id);
+  next.push(entry);
+  next.sort((a, b) => b.lastUsed - a.lastUsed);
+  return next.slice(0, MAX_SAVED_CONNECTIONS);
+}
+
+export function removeSavedConnection(list: SavedConnection[], id: string): SavedConnection[] {
+  return list.filter((item) => connectionId(item) !== id);
+}
+
+export function loadSavedConnections(): SavedConnection[] {
+  let raw: unknown;
+  try {
+    raw = iina.preferences.get(SAVED_KEY);
+  } catch (error) {
+    warn("load saved connections failed", String(error));
+    return [];
+  }
+  // An unset or empty-string preference migrates the legacy last connection.
+  if (typeof raw === "string" && raw.trim()) return parseSavedConnections(raw);
+  const legacy = loadConnection();
+  return legacy ? [{ ...legacy, lastUsed: 0 }] : [];
+}
+
+function persistSavedConnections(list: SavedConnection[]): void {
+  iina.preferences.set(SAVED_KEY, serializeSavedConnections(list));
+  iina.preferences.sync();
+}
+
+export function rememberSavedConnection(cfg: ConnectionConfig): SavedConnection[] {
+  const list = upsertSavedConnection(loadSavedConnections(), cfg, Date.now());
+  try {
+    persistSavedConnections(list);
+  } catch (error) {
+    warn("save connections failed", String(error));
+  }
+  return list;
+}
+
+export function forgetSavedConnection(id: string): SavedConnection[] {
+  const list = removeSavedConnection(loadSavedConnections(), id);
+  try {
+    persistSavedConnections(list);
+    const last = loadConnection();
+    if (last && connectionId(last) === id) clearLastConnection();
+  } catch (error) {
+    warn("forget connection failed", String(error));
+  }
+  return list;
+}
+
+function clearLastConnection(): void {
+  iina.preferences.set(PREF_KEY, "");
+  iina.preferences.sync();
 }
 
 export function sanitize(input: Partial<ConnectionConfig> | ConnectionConfig): ConnectionConfig {

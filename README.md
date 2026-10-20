@@ -6,6 +6,7 @@ An IINA 1.4+ plugin that opens a browser window, connects to a WebDAV server (Sy
 
 - Plugin menu **WebDAV Browser**, shortcut `⌥⌘D`
 - Scheme, host, port, and path fields; paste a full URL into the host field
+- Saved server dropdown: every successful connection is remembered (up to 20, newest first); selecting one restores its settings and saved password
 - HTTP Basic auth; password stored in Keychain; playlist URLs do not include credentials
 - Browse folders, double-click to play, multi-select to add to the playlist
 - Add the current folder to the playlist (includes subfolders by default; can be turned off in the window)
@@ -41,9 +42,11 @@ After TypeScript changes, run `npm run build` again, then **Plugins → Reload A
 ## Usage
 
 1. Open **Plugins → WebDAV Browser**
-2. Fill in host / port / path (for example Synology `5006` + `/webdav`, or Nextcloud `/remote.php/dav/files/USERNAME/`)
+2. Pick a server from the **Server** dropdown, or choose **New server…** and fill in host / port / path (for example Synology `5006` + `/webdav`, or Nextcloud `/remote.php/dav/files/USERNAME/`)
 3. Connect
 4. Double-click a file to play, or use the bottom bar to add the current folder to the playlist
+
+The dropdown remembers each server you connect to. Selecting one fills in the fields and shows a `saved` password hint; click Connect to reuse the Keychain password. **Forget** removes the entry. IINA exposes no Keychain delete API, so the stored password itself remains until you remove it in Keychain Access.
 
 For self-signed certificates, enable **Allow self-signed certificates**. Directory listing uses system `curl -k`; playback disables mpv TLS verification for matching WebDAV URLs.
 
@@ -72,3 +75,5 @@ ui/window.html     Browser window
 - HTTP Basic only
 - No upload, delete, or rename
 - The playlist shows file names; IINA may log 401 when probing duration on unauthenticated HTTP URLs. Playback is unaffected.
+- At most 20 saved servers; the least recently used entry is dropped
+- **Forget** removes a saved server from the plugin but cannot delete its Keychain password (no IINA API)

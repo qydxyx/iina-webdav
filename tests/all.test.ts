@@ -1,6 +1,16 @@
 import { EN, ZH, resolveLang, t } from "../src/i18n";
 import { base64Encode } from "../src/base64";
-import { isUsableConnection, sanitize, snapshotConnection } from "../src/connections";
+import {
+  connectionId,
+  isUsableConnection,
+  MAX_SAVED_CONNECTIONS,
+  parseSavedConnections,
+  removeSavedConnection,
+  sanitize,
+  serverLabel,
+  snapshotConnection,
+  upsertSavedConnection,
+} from "../src/connections";
 import { formatModified, formatSize, isHiddenName, isMediaFile } from "../src/media";
 import { parsePropfindXml } from "../src/parse-propfind";
 import {
@@ -15,7 +25,7 @@ import {
   titleFromUrl,
   urlBelongsTo,
 } from "../src/paths";
-import type { ConnectionConfig } from "../src/types";
+import type { ConnectionConfig, SavedConnection } from "../src/types";
 
 let failed = 0;
 let passed = 0;
@@ -82,6 +92,65 @@ eq(
 assert(isUsableConnection(cfg), "usable connection");
 assert(!isUsableConnection(sanitize({ at: Date.now() } as Partial<ConnectionConfig>)), "hello payload is not usable");
 eq(snapshotConnection(cfg).host, "nas.local", "snapshot host");
+
+eq(connectionId(cfg), "https://u@nas.local:443", "connection id empty port");
+eq(connectionId({ ...cfg, host: "NAS.Local", port: "443" }), "https://u@nas.local:443", "connection id casing and explicit port");
+eq(connectionId({ ...cfg, scheme: "http" }), "http://u@nas.local:80", "connection id scheme");
+eq(connectionId({ ...cfg, username: "v" }), "https://v@nas.local:443", "connection id username");
+
+eq(serverLabel({ ...cfg, port: "5006" }), "https://u@nas.local:5006/webdav", "server label with user");
+eq(
+  serverLabel({ scheme: "http", host: "nas.local", port: "", path: "/", username: "", insecure: false }),
+  "http://nas.local:80/",
+  "server label anonymous root",
+);
+
+let savedList: SavedConnection[] = [];
+savedList = upsertSavedConnection(savedList, cfg, 1000);
+eq(savedList.length, 1, "first saved connection added");
+eq(savedList[0].lastUsed, 1000, "lastUsed recorded");
+savedList = upsertSavedConnection(savedList, { ...cfg, path: "/other" }, 2000);
+eq(savedList.length, 1, "same identity updates instead of adding");
+eq(savedList[0].path, "/other", "same identity path updated");
+savedList = upsertSavedConnection(savedList, { ...cfg, username: "v" }, 3000);
+eq(savedList.length, 2, "different username is a separate server");
+eq(savedList[0].username, "v", "newest first");
+savedList = upsertSavedConnection(savedList, cfg, 4000);
+eq(savedList[0].username, "u", "reused server moves to front");
+eq(savedList.length, 2, "reused server does not duplicate");
+
+let many: SavedConnection[] = [];
+for (let i = 0; i < 25; i++) {
+  many = upsertSavedConnection(many, { ...cfg, username: `u${i}` }, i + 1);
+}
+eq(many.length, MAX_SAVED_CONNECTIONS, "saved connections capped");
+eq(many[0].username, "u24", "newest saved first after cap");
+eq(many[many.length - 1].username, "u5", "oldest saved evicted");
+
+eq(removeSavedConnection(many, connectionId(many[many.length - 1])).length, 19, "remove matching saved connection");
+eq(removeSavedConnection(many, "missing").length, 20, "remove unknown id keeps list");
+
+eq(parseSavedConnections(""), [], "parse empty pref");
+eq(parseSavedConnections("not json"), [], "parse invalid json");
+eq(parseSavedConnections("{}"), [], "parse non-array");
+eq(parseSavedConnections("[null,1,{\"host\":\"\"},{\"host\":\"  \"}]"), [], "parse junk entries");
+
+const parsedDupes = parseSavedConnections(
+  JSON.stringify([
+    { ...cfg, path: "/old", lastUsed: 5 },
+    { ...cfg, path: "/new", lastUsed: 9 },
+  ]),
+);
+eq(parsedDupes.length, 1, "parse dedupes by identity");
+eq(parsedDupes[0].path, "/new", "parse keeps newest duplicate");
+eq(parsedDupes[0].lastUsed, 9, "parse keeps newest timestamp");
+
+const parsedNoTime = parseSavedConnections(JSON.stringify([{ ...cfg, lastUsed: undefined }]));
+eq(parsedNoTime.length, 1, "parse keeps entry without lastUsed");
+eq(parsedNoTime[0].lastUsed, 0, "parse defaults missing lastUsed");
+eq(parseSavedConnections(JSON.stringify([{ ...cfg, lastUsed: "soon" }]))[0].lastUsed, 0, "parse defaults invalid lastUsed");
+
+eq(parseSavedConnections(JSON.stringify([{ host: "", lastUsed: 1 }])), [], "parse drops missing host");
 
 const pasted = parsePastedLocation("https://192.168.1.10:5006/webdav/Movies");
 eq(pasted, { scheme: "https", host: "192.168.1.10", port: "5006", path: "/webdav/Movies" }, "paste url");

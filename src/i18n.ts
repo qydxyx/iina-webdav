@@ -53,6 +53,10 @@ export const EN = {
   root: "Root",
   savedPassword: "saved",
   remembered: "Last connection remembered. Click Connect to continue.",
+  server: "Server",
+  newServer: "New server…",
+  forgetServer: "Forget",
+  serverForgotten: "Removed from saved servers.",
 } as const;
 
 export const ZH: { [K in MessageKey]: string } = {
@@ -107,6 +111,10 @@ export const ZH: { [K in MessageKey]: string } = {
   root: "根目录",
   savedPassword: "已保存",
   remembered: "已记住上次连接，点连接即可继续。",
+  server: "服务器",
+  newServer: "新建服务器…",
+  forgetServer: "移除",
+  serverForgotten: "已从保存的服务器中移除。",
 };
 
 function interpolate(template: string, vars?: Record<string, string | number>): string {

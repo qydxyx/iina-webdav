@@ -125,6 +125,15 @@ body {
   flex: none;
 }
 
+.server {
+  flex: 1;
+  min-width: 0;
+}
+
+.server select {
+  width: 100%;
+}
+
 .host,
 .path,
 .user,

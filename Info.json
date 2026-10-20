@@ -1,7 +1,7 @@
 {
   "name": "WebDAV",
   "identifier": "com.qydxyx.iina-webdav",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Connect to a WebDAV server, browse media, and add folders to the playlist.",
   "author": {
     "name": "qydxyx"
@@ -19,7 +19,8 @@
   ],
   "allowedDomains": ["*"],
   "preferenceDefaults": {
-    "lastConnection": ""
+    "lastConnection": "",
+    "savedConnections": ""
   },
   "localized": {
     "zh-Hans": {

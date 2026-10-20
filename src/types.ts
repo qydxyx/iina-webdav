@@ -9,6 +9,21 @@ export interface ConnectionConfig {
   insecure: boolean;
 }
 
+export interface SavedConnection extends ConnectionConfig {
+  lastUsed: number;
+}
+
+export interface SavedServerView {
+  id: string;
+  label: string;
+  scheme: Scheme;
+  host: string;
+  port: string;
+  path: string;
+  username: string;
+  insecure: boolean;
+}
+
 export interface DavItem {
   href: string;
   path: string;

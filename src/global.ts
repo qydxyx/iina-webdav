@@ -1,10 +1,15 @@
 import {
+  connectionId,
+  forgetSavedConnection,
   isUsableConnection,
   loadConnection,
   loadPassword,
+  loadSavedConnections,
+  rememberSavedConnection,
   saveConnection,
   savePassword,
   sanitize,
+  serverLabel,
   snapshotConnection,
 } from "./connections";
 import { debug, describeConn, error as logError, warn } from "./debug";
@@ -12,7 +17,7 @@ import { allStrings, pluginLang, t } from "./i18n";
 import { formatModified, formatSize, isMediaFile } from "./media";
 import { basename, collectionUrl, mediaUrl, normalizePath, originOf, parentPath, parsePastedLocation, titleFromUrl } from "./paths";
 import { collectMedia, listDirectory, WebDavError } from "./webdav";
-import type { ConnectionConfig, DavItem, PlaylistEntry } from "./types";
+import type { ConnectionConfig, DavItem, PlaylistEntry, SavedConnection, SavedServerView } from "./types";
 
 const { global, menu, standaloneWindow } = iina;
 
@@ -178,16 +183,44 @@ function errorText(error: unknown): string {
   return error instanceof WebDavError || error instanceof Error ? error.message : String(error);
 }
 
+function serverViews(list: SavedConnection[]): SavedServerView[] {
+  return list.map((entry) => ({
+    id: connectionId(entry),
+    label: serverLabel(entry),
+    scheme: entry.scheme,
+    host: entry.host,
+    port: entry.port,
+    path: entry.path,
+    username: entry.username,
+    insecure: entry.insecure,
+  }));
+}
+
 function attachWindowHandlers(): void {
   standaloneWindow.onMessage("ready", () => {
-    const saved = loadConnection();
+    const savedList = loadSavedConnections();
+    const last = loadConnection();
+    const lastId = last ? connectionId(last) : "";
+    const selectedId = last && savedList.some((entry) => connectionId(entry) === lastId) ? lastId : "";
+    const saved = selectedId ? last : null;
     debug("window ready", describeConn(saved));
     send("init", {
       connection: saved,
       hasPassword: saved ? Boolean(loadPassword(saved)) : false,
       lang: pluginLang(),
       strings: allStrings(),
+      selectedId,
+      servers: serverViews(savedList),
     });
+  });
+
+  standaloneWindow.onMessage("forget-server", (data: { id?: string }) => {
+    const id = data && typeof data.id === "string" ? data.id : "";
+    if (!id) return;
+    debug("forget-server", id);
+    const servers = serverViews(forgetSavedConnection(id));
+    send("saved-servers", { servers });
+    send("status", { text: t("serverForgotten"), error: false, loading: false });
   });
 
   standaloneWindow.onMessage("debug-log", (data: { args?: unknown[] }) => {
@@ -221,7 +254,8 @@ function attachWindowHandlers(): void {
         }
       }
       broadcastConnection(cfg);
-      send("connected", { connection: cfg, url: collectionUrl(cfg, listed) });
+      const servers = serverViews(rememberSavedConnection(cfg));
+      send("connected", { connection: cfg, url: collectionUrl(cfg, listed), serverId: connectionId(cfg), servers });
       send("listing", {
         path: listed,
         parent: listed === "/" ? null : parentPath(listed),

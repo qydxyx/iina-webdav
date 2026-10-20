@@ -10,6 +10,8 @@
   var passEl = document.getElementById("password");
   var insecureEl = document.getElementById("insecure");
   var connectBtn = document.getElementById("connect-btn");
+  var serverSelectEl = document.getElementById("server-select");
+  var forgetBtn = document.getElementById("forget-btn");
   var refreshBtn = document.getElementById("refresh-btn");
   var crumbsEl = document.getElementById("crumbs-path");
   var listEl = document.getElementById("list");
@@ -26,6 +28,7 @@
   var selected = [];
   var anchorIndex = 0;
   var hasSavedPassword = false;
+  var servers = [];
   var lang = "en";
   var strings = {
     scheme: "Scheme",
@@ -53,6 +56,10 @@
     root: "Root",
     savedPassword: "saved",
     remembered: "Last connection remembered. Click Connect to continue.",
+    server: "Server",
+    newServer: "New server…",
+    forgetServer: "Forget",
+    serverForgotten: "Removed from saved servers.",
     notConnectedStatus: "Not connected",
     hostRequired: "Enter a host.",
   };
@@ -124,6 +131,68 @@
     pathEl.value = cfg.path || "/";
     userEl.value = cfg.username || "";
     insecureEl.checked = Boolean(cfg.insecure);
+  }
+
+  function applyPasswordHint(has) {
+    hasSavedPassword = Boolean(has);
+    if (!passEl.value) passEl.placeholder = hasSavedPassword ? strings.savedPassword : strings.optional;
+  }
+
+  function serverById(id) {
+    for (var i = 0; i < servers.length; i++) {
+      if (servers[i].id === id) return servers[i];
+    }
+    return null;
+  }
+
+  function renderServers(list, selectedId) {
+    servers = list || [];
+    serverSelectEl.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = strings.newServer;
+    serverSelectEl.appendChild(placeholder);
+    var found = false;
+    for (var i = 0; i < servers.length; i++) {
+      var option = document.createElement("option");
+      option.value = servers[i].id;
+      option.textContent = servers[i].label;
+      serverSelectEl.appendChild(option);
+      if (servers[i].id === selectedId) found = true;
+    }
+    serverSelectEl.value = found ? selectedId : "";
+    forgetBtn.disabled = !found;
+  }
+
+  function clearForm() {
+    schemeEl.value = "https";
+    hostEl.value = "";
+    portEl.value = "";
+    pathEl.value = "";
+    userEl.value = "";
+    passEl.value = "";
+    insecureEl.checked = false;
+    applyPasswordHint(false);
+  }
+
+  function selectServer(id) {
+    var entry = serverById(id);
+    if (!entry) {
+      clearForm();
+      hostEl.focus();
+      return;
+    }
+    applyConnection(entry);
+    passEl.value = "";
+    applyPasswordHint(Boolean(entry.username));
+    forgetBtn.disabled = false;
+  }
+
+  function deselectServer() {
+    serverSelectEl.value = "";
+    forgetBtn.disabled = true;
+    hasSavedPassword = false;
+    passEl.placeholder = strings.optional;
   }
 
   function iconSvg(isDir, isMedia) {
@@ -314,6 +383,26 @@
     post("connect", data);
   });
 
+  serverSelectEl.addEventListener("change", function () {
+    selectServer(serverSelectEl.value);
+  });
+
+  forgetBtn.addEventListener("click", function () {
+    var id = serverSelectEl.value;
+    if (!id) return;
+    forgetBtn.disabled = true;
+    post("forget-server", { id: id });
+  });
+
+  function identityEdited() {
+    deselectServer();
+  }
+
+  schemeEl.addEventListener("change", identityEdited);
+  hostEl.addEventListener("input", identityEdited);
+  portEl.addEventListener("input", identityEdited);
+  userEl.addEventListener("input", identityEdited);
+
   refreshBtn.addEventListener("click", function () {
     post("list", { path: currentPath });
   });
@@ -380,16 +469,23 @@
       }
     }
     applyI18n();
+    renderServers(data && data.servers, data && data.selectedId);
     if (data && data.connection) applyConnection(data.connection);
-    hasSavedPassword = Boolean(data && data.hasPassword);
-    if (hasSavedPassword && !passEl.value) passEl.placeholder = strings.savedPassword;
+    applyPasswordHint(data && data.hasPassword);
     setStatus(data && data.connection ? strings.remembered : strings.notConnectedStatus, false, false);
   });
 
   onMessage("connected", function (data) {
     connected = true;
     if (data && data.connection) applyConnection(data.connection);
+    renderServers(data && data.servers, data && data.serverId);
+    applyPasswordHint(Boolean(data && data.connection && data.connection.username));
     syncButtons();
+  });
+
+  onMessage("saved-servers", function (data) {
+    renderServers(data && data.servers, "");
+    applyPasswordHint(false);
   });
 
   onMessage("listing", function (data) {
