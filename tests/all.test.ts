@@ -81,7 +81,7 @@ eq(mediaUrl(cfg, "/webdav/a b.mkv"), "https://nas.local:443/webdav/a%20b.mkv", "
 eq(collectionUrl(cfg, "/webdav"), "https://nas.local:443/webdav/", "collection url");
 assert(urlBelongsTo("https://nas.local:443/webdav/x.mkv", cfg), "url belongs with port");
 assert(urlBelongsTo("https://nas.local/webdav/x.mkv", cfg), "url belongs without port");
-eq(titleFromUrl("http://192.168.0.3:5005/Online%20College/7.%E6%B2%B9%E7%AE%A1.mp4"), "7.油管.mp4", "title from url");
+eq(titleFromUrl("http://nas.local:5005/Sample%20Videos/01.%E6%A0%B7%E4%BE%8B.mp4"), "01.样例.mp4", "title from url");
 eq(stripPlaybackWrapper("ffmpeg://http://u:p@nas.local:443/webdav/x.mkv"), "http://nas.local:443/webdav/x.mkv", "strip ffmpeg auth");
 assert(urlBelongsTo("ffmpeg://https://u:p@nas.local:443/webdav/x.mkv", cfg), "url belongs ffmpeg");
 eq(
