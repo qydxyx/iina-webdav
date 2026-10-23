@@ -358,15 +358,11 @@ function attachWindowHandlers(): void {
   });
 }
 
-let handlersAttached = false;
-
 function openWindow(): void {
   debug("open window");
+  // IINA's loadFile clears every onMessage listener. Re-attach after each load.
   standaloneWindow.loadFile("ui/window.html");
-  if (!handlersAttached) {
-    attachWindowHandlers();
-    handlersAttached = true;
-  }
+  attachWindowHandlers();
   standaloneWindow.setProperty({ title: "WebDAV", resizable: true });
   standaloneWindow.setFrame(840, 620);
   standaloneWindow.open();
